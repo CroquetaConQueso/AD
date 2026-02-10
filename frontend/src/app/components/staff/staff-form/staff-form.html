@@ -1,0 +1,69 @@
+<div class="form-wrapper">
+  <div class="card form-card">
+    <div class="card-header">
+      <h2>{{ title }}</h2>
+      <p class="subtitle" *ngIf="mode !== 'new'">
+        <span class="chip" [class.chip-view]="isView" [class.chip-edit]="mode==='edit'">
+          {{ mode === 'edit' ? 'EDICIÓN' : 'LECTURA' }}
+        </span>
+        <span class="muted" *ngIf="staff.id">ID: {{ staff.id }}</span>
+      </p>
+    </div>
+
+    <form (ngSubmit)="save()" class="card-body" *ngIf="!loading; else loadingTpl">
+      <div class="form-group">
+        <label for="name">Nombre</label>
+        <input
+          id="name"
+          type="text"
+          [(ngModel)]="staff.name"
+          name="name"
+          required
+          class="form-control"
+          placeholder="Ej: Dra. María Rodríguez"
+          [readonly]="isView"
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="role">Rol</label>
+        <select
+          id="role"
+          [(ngModel)]="staff.role"
+          name="role"
+          class="form-control"
+          [disabled]="isView"
+        >
+          <option *ngFor="let r of roles" [value]="r">{{ r }}</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="spec">Especialización (opcional)</label>
+        <input
+          id="spec"
+          type="text"
+          [(ngModel)]="staff.specialization"
+          name="specialization"
+          class="form-control"
+          placeholder="Ej: Cardiología"
+          [readonly]="isView"
+        >
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" (click)="cancel()">Volver</button>
+
+        <button *ngIf="!isView" type="submit" class="btn btn-primary">
+          {{ mode === 'new' ? 'Guardar' : 'Actualizar' }}
+        </button>
+      </div>
+    </form>
+
+    <ng-template #loadingTpl>
+      <div class="card-body">
+        <div class="loading">Cargando...</div>
+      </div>
+    </ng-template>
+  </div>
+</div>

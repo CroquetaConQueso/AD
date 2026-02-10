@@ -1,0 +1,86 @@
+<div class="form-wrapper">
+  <div class="card form-card">
+    <div class="card-header">
+      <h2>Asignar Nuevo Tratamiento</h2>
+    </div>
+    
+    <form (ngSubmit)="save()" class="card-body">
+      
+      <div class="form-group">
+        <label>Paciente</label>
+        <select [(ngModel)]="treatment.patientId" name="patientId" required class="form-control">
+            <option value="" disabled selected>Seleccione un paciente</option>
+            <option *ngFor="let p of patients" [value]="p.id">{{ p.name }}</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Personal (Doctor/Enfermero)</label>
+        <select [(ngModel)]="treatment.staffId" name="staffId" required class="form-control">
+            <option value="" disabled selected>Seleccione personal</option>
+            <option *ngFor="let s of staffList" [value]="s.id">{{ s.name }} ({{ s.role }})</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+         <label>Medicina</label>
+         <select [(ngModel)]="treatment.medicineId" name="medicineId" required class="form-control">
+            <option value="" disabled selected>Seleccione medicina</option>
+            <option *ngFor="let m of medicines" [value]="m.id">{{ m.name }} (Stock: {{ m.quantity }})</option>
+         </select>
+      </div>
+
+      <div class="form-group">
+        <label>Descripción / Medicación</label>
+        <textarea 
+          [(ngModel)]="treatment.description" 
+          name="description" 
+          class="form-control" 
+          rows="2"
+          placeholder="Ej: Ibuprofeno 600mg cada 8 horas..."
+        ></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Notas Adicionales</label>
+        <textarea 
+          [(ngModel)]="treatment.notes" 
+          name="notes" 
+          class="form-control" 
+          rows="2"
+        ></textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group col">
+          <label>Fecha Inicio</label>
+          <input 
+            type="date" 
+            [ngModel]="treatment.startDate | date:'yyyy-MM-dd'" 
+            (ngModelChange)="treatment.startDate = $event"
+            name="startDate" 
+            required 
+            class="form-control"
+          >
+        </div>
+        
+        <div class="form-group col">
+          <label>Fecha Fin</label>
+          <input 
+            type="date" 
+            [ngModel]="treatment.endDate | date:'yyyy-MM-dd'"
+            (ngModelChange)="treatment.endDate = $event" 
+            name="endDate" 
+            required 
+            class="form-control"
+          >
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" routerLink="/treatments">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Guardar Tratamiento</button>
+      </div>
+    </form>
+  </div>
+</div>

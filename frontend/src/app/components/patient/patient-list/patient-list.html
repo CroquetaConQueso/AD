@@ -1,0 +1,65 @@
+<div class="page-header">
+  <h2>Pacientes (DEBUG MODE)</h2>
+
+  <div class="toolbar">
+    <input
+      class="search"
+      type="text"
+      placeholder="Buscar por nombre / edad / historial..."
+      [(ngModel)]="searchTerm"
+      (input)="onSearchInput()"
+    />
+
+    <button class="btn btn-secondary" (click)="refresh()">Refrescar</button>
+
+    <button class="btn btn-primary" (click)="createNew()">Nuevo</button>
+    <button class="btn btn-secondary" (click)="editSelected()">Editar</button>
+    <button class="btn btn-secondary" (click)="inspectSelected()">Inspeccionar</button>
+
+    <button class="btn btn-secondary" (click)="viewSelected()">Ver seleccionados</button>
+    <button class="btn btn-danger" (click)="deleteSelected()">Eliminar seleccionados</button>
+  </div>
+</div>
+
+<div class="card">
+  <div class="loading" *ngIf="isLoading">Cargando...</div>
+  <div class="error-msg" *ngIf="debugMsg" style="color: red; padding: 10px;">Debug: {{ debugMsg }}</div>
+
+  <table class="table" *ngIf="!isLoading">
+    <thead>
+      <tr>
+        <th class="col-check">
+          <input type="checkbox" [checked]="allVisibleSelected()" (change)="toggleSelectAll()" />
+        </th>
+        <th>Nombre</th>
+        <th class="col-age">Edad</th>
+        <th>Historial</th>
+        <th class="col-actions">Acciones</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      <tr *ngFor="let p of filtered" [class.row-selected]="p.id && isSelected(p.id)">
+        <td class="col-check">
+          <input
+            type="checkbox"
+            [checked]="p.id && isSelected(p.id)"
+            (click)="$event.stopPropagation(); toggleSelection(p.id!)"
+          />
+        </td>
+        <td>{{ p.name }}</td>
+        <td class="col-age">{{ p.age }}</td>
+        <td>{{ p.medicalHistory || '-' }}</td>
+        <td class="col-actions">
+          <button class="btn-link" (click)="editRow(p.id!)">Editar</button>
+          <button class="btn-link" (click)="viewRow(p.id!)">Ver</button>
+          <button class="btn-link danger" (click)="deleteOne(p.id!)">Eliminar</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="empty" *ngIf="!isLoading && filtered.length === 0">
+    No hay registros.
+  </div>
+</div>

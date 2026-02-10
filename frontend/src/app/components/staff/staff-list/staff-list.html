@@ -1,0 +1,64 @@
+<div class="page-header">
+  <h2>Personal</h2>
+
+  <div class="toolbar">
+    <input
+      class="search"
+      type="text"
+      placeholder="Buscar por nombre / rol / especialización..."
+      [(ngModel)]="searchTerm"
+      (input)="onSearchInput()"
+    />
+
+    <button class="btn btn-secondary" (click)="refresh()">Refrescar</button>
+
+    <button class="btn btn-primary" (click)="createNew()">Nuevo</button>
+    <button class="btn btn-secondary" (click)="editSelected()">Editar</button>
+    <button class="btn btn-secondary" (click)="inspectSelected()">Inspeccionar</button>
+
+    <button class="btn btn-secondary" (click)="viewSelected()">Ver seleccionados</button>
+    <button class="btn btn-danger" (click)="deleteSelected()">Eliminar seleccionados</button>
+  </div>
+</div>
+
+<div class="card">
+  <div class="loading" *ngIf="isLoading">Cargando...</div>
+
+  <table class="table" *ngIf="!isLoading">
+    <thead>
+      <tr>
+        <th class="col-check">
+          <input type="checkbox" [checked]="allVisibleSelected()" (change)="toggleSelectAll()" />
+        </th>
+        <th>Nombre</th>
+        <th>Rol</th>
+        <th>Especialización</th>
+        <th class="col-actions">Acciones</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      <tr *ngFor="let s of filteredList" [class.row-selected]="s.id && isSelected(s.id)">
+        <td class="col-check">
+          <input
+            type="checkbox"
+            [checked]="s.id && isSelected(s.id)"
+            (click)="$event.stopPropagation(); toggleSelection(s.id!)"
+          />
+        </td>
+        <td>{{ s.name }}</td>
+        <td>{{ s.role }}</td>
+        <td>{{ s.specialization || '-' }}</td>
+        <td class="col-actions">
+          <button class="btn-link" (click)="editRow(s.id!)">Editar</button>
+          <button class="btn-link" (click)="viewRow(s.id!)">Ver</button>
+          <button class="btn-link danger" (click)="deleteOne(s.id!)">Eliminar</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="empty" *ngIf="!isLoading && filteredList.length === 0">
+    No hay registros.
+  </div>
+</div>

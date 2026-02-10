@@ -1,0 +1,19 @@
+<nav class="sidebar">
+  <div class="sidebar-header">
+    <i class="fa-solid fa-hospital-symbol logo-icon"></i>
+    <h2>MediManager</h2>
+  </div>
+  
+  <ul class="nav-links">
+    <li *ngFor="let item of menuItems">
+      <a [routerLink]="item.route" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
+        <i [class]="item.icon"></i>
+        <span>{{ item.label }}</span>
+      </a>
+    </li>
+  </ul>
+
+  <div class="sidebar-footer">
+    <p>© 2026 Hospital System</p>
+  </div>
+</nav>

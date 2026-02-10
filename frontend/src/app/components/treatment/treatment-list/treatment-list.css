@@ -1,0 +1,27 @@
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.table-container {
+  padding: 0;
+  overflow: hidden;
+  border-left: 4px solid var(--primary-dark);
+}
+
+.table {
+  margin-top: 0;
+}
+
+.text-center {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-light);
+}
+
+.btn-sm {
+  padding: 5px 10px;
+  font-size: 0.85rem;
+}

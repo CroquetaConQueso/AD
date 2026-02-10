@@ -1,0 +1,45 @@
+<div class="container-fluid">
+  <div class="page-header">
+    <h2>Tratamientos Asignados</h2>
+    <button routerLink="/treatments/new" class="btn btn-primary">
+      + Asignar Tratamiento
+    </button>
+  </div>
+
+  <div class="card table-container">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Paciente</th>
+          <th>Personal</th>
+          <th>Medicina</th>
+          <th>Descripción / Notas</th>
+          <th>Fecha</th>
+          <th style="width: 150px;">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let t of treatments">
+          <td>
+            <strong>{{ getPatientName(t.patientId) }}</strong>
+          </td>
+          <td>{{ getStaffName(t.staffId) }}</td>
+          <td>{{ getMedicineName(t.medicineId) }}</td>
+          <td>
+             <div *ngIf="t.description"><em>{{ t.description }}</em></div>
+             <div *ngIf="t.notes"><small>{{ t.notes }}</small></div>
+          </td>
+          <td>{{ t.startDate || t.date | date:'dd/MM/yyyy' }}</td>
+          <td>
+            <button (click)="delete(t.id)" class="btn btn-danger btn-sm">
+              Eliminar
+            </button>
+          </td>
+        </tr>
+        <tr *ngIf="treatments.length === 0">
+          <td colspan="6" class="text-center">No hay tratamientos registrados.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

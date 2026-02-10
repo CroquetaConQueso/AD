@@ -1,0 +1,68 @@
+<div class="form-wrapper">
+  <div class="card form-card">
+    <div class="card-header">
+      <h2>{{ title }}</h2>
+      <p class="subtitle" *ngIf="mode !== 'new'">
+        <span class="chip" [class.chip-view]="isView" [class.chip-edit]="mode==='edit'">
+          {{ mode === 'edit' ? 'EDICIÓN' : 'LECTURA' }}
+        </span>
+        <span class="muted" *ngIf="patient.id">ID: {{ patient.id }}</span>
+      </p>
+    </div>
+
+    <form (ngSubmit)="save()" class="card-body" *ngIf="!loading; else loadingTpl">
+      <div class="form-group">
+        <label for="name">Nombre</label>
+        <input
+          id="name"
+          type="text"
+          [(ngModel)]="patient.name"
+          name="name"
+          required
+          class="form-control"
+          placeholder="Ej: Carlos Ruiz"
+          [readonly]="isView"
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="age">Edad</label>
+        <input
+          id="age"
+          type="number"
+          [(ngModel)]="patient.age"
+          name="age"
+          class="form-control"
+          min="0"
+          [readonly]="isView"
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="mh">Historial médico</label>
+        <textarea
+          id="mh"
+          [(ngModel)]="patient.medicalHistory"
+          name="medicalHistory"
+          class="form-control"
+          rows="4"
+          placeholder="Ej: Hipertensión leve"
+          [readonly]="isView"
+        ></textarea>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" (click)="cancel()">Volver</button>
+        <button *ngIf="!isView" type="submit" class="btn btn-primary">
+          {{ mode === 'new' ? 'Guardar' : 'Actualizar' }}
+        </button>
+      </div>
+    </form>
+
+    <ng-template #loadingTpl>
+      <div class="card-body">
+        <div class="loading">Cargando...</div>
+      </div>
+    </ng-template>
+  </div>
+</div>

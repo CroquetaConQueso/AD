@@ -1,0 +1,55 @@
+<div class="form-wrapper">
+  <div class="card form-card">
+    <div class="card-header">
+      <h2>{{ title }}</h2>
+      <p class="subtitle" *ngIf="mode !== 'new'">
+        <span class="chip" [class.chip-view]="isView" [class.chip-edit]="mode==='edit'">
+          {{ mode === 'edit' ? 'EDICIÓN' : 'LECTURA' }}
+        </span>
+        <span class="muted" *ngIf="medicine.id">ID: {{ medicine.id }}</span>
+      </p>
+    </div>
+
+    <form (ngSubmit)="save()" class="card-body" *ngIf="!loading; else loadingTpl">
+      <div class="form-group">
+        <label for="name">Nombre</label>
+        <input
+          id="name"
+          type="text"
+          [(ngModel)]="medicine.name"
+          name="name"
+          required
+          class="form-control"
+          placeholder="Ej: Paracetamol"
+          [readonly]="isView"
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="qty">Cantidad</label>
+        <input
+          id="qty"
+          type="number"
+          [(ngModel)]="medicine.quantity"
+          name="quantity"
+          class="form-control"
+          min="0"
+          [readonly]="isView"
+        >
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" (click)="cancel()">Volver</button>
+        <button *ngIf="!isView" type="submit" class="btn btn-primary">
+          {{ mode === 'new' ? 'Guardar' : 'Actualizar' }}
+        </button>
+      </div>
+    </form>
+
+    <ng-template #loadingTpl>
+      <div class="card-body">
+        <div class="loading">Cargando...</div>
+      </div>
+    </ng-template>
+  </div>
+</div>

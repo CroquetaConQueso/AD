@@ -1,0 +1,13 @@
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: hospital-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: hospital-db
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data:
