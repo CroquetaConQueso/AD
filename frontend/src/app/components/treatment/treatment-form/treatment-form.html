@@ -1,86 +1,116 @@
-<div class="form-wrapper">
-  <div class="card form-card">
-    <div class="card-header">
-      <h2>Asignar Nuevo Tratamiento</h2>
-    </div>
+<div class="card">
+  <div class="card-header">
+    <h2>{{ isViewMode ? 'Detalles del Tratamiento' : (isEdit ? 'Editar Tratamiento' : 'Nuevo Tratamiento') }}</h2>
+  </div>
+  
+  <div class="card-body">
     
-    <form (ngSubmit)="save()" class="card-body">
+    <div *ngIf="isLoading" class="loading-msg">
+      <p>Cargando datos...</p>
+    </div>
+
+    <div *ngIf="debugMsg && debugMsg.startsWith('Error')" class="alert alert-danger">
+      {{ debugMsg }}
+    </div>
+
+    <form *ngIf="!isLoading" (ngSubmit)="save()">
       
       <div class="form-group">
-        <label>Paciente</label>
-        <select [(ngModel)]="treatment.patientId" name="patientId" required class="form-control">
-            <option value="" disabled selected>Seleccione un paciente</option>
-            <option *ngFor="let p of patients" [value]="p.id">{{ p.name }}</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label>Personal (Doctor/Enfermero)</label>
-        <select [(ngModel)]="treatment.staffId" name="staffId" required class="form-control">
-            <option value="" disabled selected>Seleccione personal</option>
-            <option *ngFor="let s of staffList" [value]="s.id">{{ s.name }} ({{ s.role }})</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-         <label>Medicina</label>
-         <select [(ngModel)]="treatment.medicineId" name="medicineId" required class="form-control">
-            <option value="" disabled selected>Seleccione medicina</option>
-            <option *ngFor="let m of medicines" [value]="m.id">{{ m.name }} (Stock: {{ m.quantity }})</option>
-         </select>
-      </div>
-
-      <div class="form-group">
-        <label>Descripción / Medicación</label>
-        <textarea 
+        <label for="desc">Descripción del Tratamiento <span class="required">*</span></label>
+        <input 
+          type="text" 
+          id="desc"
+          class="form-control" 
           [(ngModel)]="treatment.description" 
           name="description" 
-          class="form-control" 
-          rows="2"
-          placeholder="Ej: Ibuprofeno 600mg cada 8 horas..."
-        ></textarea>
+          [readonly]="isViewMode" 
+          placeholder="Ej: Revisión anual, Control de tensión..." 
+          required
+        />
       </div>
 
       <div class="form-group">
-        <label>Notas Adicionales</label>
-        <textarea 
-          [(ngModel)]="treatment.notes" 
-          name="notes" 
+        <label for="patient">Paciente <span class="required">*</span></label>
+        <select 
+          id="patient"
           class="form-control" 
-          rows="2"
-        ></textarea>
+          [(ngModel)]="treatment.patientId" 
+          name="patientId" 
+          [disabled]="isViewMode" 
+          required>
+          <option value="" disabled selected>-- Selecciona un Paciente --</option>
+          <option *ngFor="let p of patients" [value]="p.id">
+            {{ p.name }} ({{ p.age }} años)
+          </option>
+        </select>
       </div>
 
-      <div class="form-row">
-        <div class="form-group col">
-          <label>Fecha Inicio</label>
-          <input 
-            type="date" 
-            [ngModel]="treatment.startDate | date:'yyyy-MM-dd'" 
-            (ngModelChange)="treatment.startDate = $event"
-            name="startDate" 
-            required 
-            class="form-control"
-          >
-        </div>
-        
-        <div class="form-group col">
-          <label>Fecha Fin</label>
-          <input 
-            type="date" 
-            [ngModel]="treatment.endDate | date:'yyyy-MM-dd'"
-            (ngModelChange)="treatment.endDate = $event" 
-            name="endDate" 
-            required 
-            class="form-control"
-          >
-        </div>
+      <div class="form-group">
+        <label for="staff">Doctor/a o Enfermero/a <span class="required">*</span></label>
+        <select 
+          id="staff"
+          class="form-control" 
+          [(ngModel)]="treatment.staffId" 
+          name="staffId" 
+          [disabled]="isViewMode" 
+          required>
+          <option value="" disabled selected>-- Selecciona Personal --</option>
+          <option *ngFor="let s of staffList" [value]="s.id">
+            {{ s.name }} - {{ s.role }}
+          </option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="medicine">Medicina Recetada</label>
+        <select 
+          id="medicine"
+          class="form-control" 
+          [(ngModel)]="treatment.medicineId" 
+          name="medicineId" 
+          [disabled]="isViewMode">
+          <option value="">-- Ninguna --</option>
+          <option *ngFor="let m of medicines" [value]="m.id">
+            {{ m.name }} (Stock: {{ m.quantity }})
+          </option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="date">Fecha de Inicio <span class="required">*</span></label>
+        <input 
+          type="date" 
+          id="date"
+          class="form-control" 
+          [(ngModel)]="treatment.date" 
+          name="date" 
+          [readonly]="isViewMode" 
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="notes">Notas / Observaciones</label>
+        <textarea 
+          id="notes"
+          class="form-control" 
+          [(ngModel)]="treatment.notes" 
+          name="notes" 
+          [readonly]="isViewMode" 
+          rows="3"
+          placeholder="Escribe aquí cualquier detalle clínico adicional...">
+        </textarea>
       </div>
 
       <div class="form-actions">
-        <button type="button" class="btn btn-secondary" routerLink="/treatments">Cancelar</button>
-        <button type="submit" class="btn btn-primary">Guardar Tratamiento</button>
+        <button type="button" class="btn btn-secondary" (click)="cancel()">
+          {{ isViewMode ? 'Volver' : 'Cancelar' }}
+        </button>
+        <button type="submit" class="btn btn-primary" *ngIf="!isViewMode" [disabled]="!treatment.description || !treatment.patientId || !treatment.staffId">
+          Guardar Tratamiento
+        </button>
       </div>
+
     </form>
   </div>
 </div>

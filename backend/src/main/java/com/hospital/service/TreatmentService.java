@@ -41,7 +41,20 @@ public class TreatmentService {
         return treatmentRepository.save(treatment);
     }
 
+    public Treatment updateTreatment(String id, Treatment treatment) {
+        treatment.setId(id);
+        return treatmentRepository.save(treatment);
+    }
+
     public List<Treatment> findByPatientId(String patientId) {
         return treatmentRepository.findByPatientId(patientId);
+    }
+
+    public void deleteTreatment(String id) {
+        treatmentRepository.deleteById(id);
+    }
+
+    public Optional<Treatment> findById(String id) {
+        return treatmentRepository.findById(id);
     }
 }

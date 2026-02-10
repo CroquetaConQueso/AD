@@ -10,8 +10,8 @@ public class Staff {
     @Id
     private String id;
     private String name;
-    private Role role; // DOCTOR, NURSE
-    private String specialization; // For DOCTOR
+    private Role role;
+    private String specialization;
 
     public enum Role {
         DOCTOR, NURSE
