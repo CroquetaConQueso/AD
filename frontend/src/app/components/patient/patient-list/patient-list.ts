@@ -19,14 +19,15 @@ export class PatientListComponent implements OnInit {
   patients: Patient[] = [];
   filtered: Patient[] = [];
 
-  /** IDs seleccionados (checkbox) */
   selected: Set<string> = new Set();
 
   searchTerm = '';
   isLoading = false;
-
-  /** Texto visible en la UI (modo debug) */
   debugMsg = '';
+
+  // --- VARIABLES PARA EL MODAL ---
+  showModal = false;
+  selectedData: Patient[] = [];
 
   constructor(
     private api: ApiService,
@@ -39,12 +40,6 @@ export class PatientListComponent implements OnInit {
     this.load();
   }
 
-  /**
-   * Carga robusta:
-   * - Normaliza respuestas (array, paginado, wrapper)
-   * - Nunca deja la UI en "Cargando..." (finalize + watchdog)
-   * - Fuerza refresco visual incluso si algo ejecuta fuera de Zone
-   */
   load(): void {
     const startedAt = Date.now();
 
@@ -52,8 +47,6 @@ export class PatientListComponent implements OnInit {
     this.debugMsg = 'Cargando pacientes...';
     this.cdr.detectChanges();
 
-    // Watchdog anti-bloqueo: si por cualquier motivo el observable no emite
-    // (capa de red, CORS raro, etc.), desactivamos el loading.
     const watchdog = setTimeout(() => {
       if (this.isLoading) {
         this.zone.run(() => {
@@ -70,7 +63,6 @@ export class PatientListComponent implements OnInit {
     this.api.getPatients().pipe(
       map((data: any) => this.normalizeList(data)),
       catchError((err) => {
-        // Convertimos el error en lista vacía y dejamos pista.
         this.zone.run(() => {
           this.debugMsg = this.formatHttpError(err);
         });
@@ -81,7 +73,6 @@ export class PatientListComponent implements OnInit {
         this.zone.run(() => {
           this.isLoading = false;
           const ms = Date.now() - startedAt;
-          // Si no hubo error, dejamos un resumen.
           if (!this.debugMsg || this.debugMsg.startsWith('Cargando')) {
             this.debugMsg = `OK (${ms} ms) · ${this.patients.length} registro(s)`;
           }
@@ -99,28 +90,18 @@ export class PatientListComponent implements OnInit {
   }
 
   private normalizeList(data: any): Patient[] {
-    // 1) Lista normal
     if (Array.isArray(data)) return data;
-
-    // 2) Spring pageable: { content: [...] }
     if (data && Array.isArray(data.content)) return data.content;
-
-    // 3) Wrapper custom: { items: [...] } o { patients: [...] }
     if (data && Array.isArray(data.items)) return data.items;
     if (data && Array.isArray(data.patients)) return data.patients;
-
-    // 4) Nada usable
     console.warn('⚠️ Formato inesperado en pacientes. Se usará lista vacía:', data);
     return [];
   }
 
   private formatHttpError(err: any): string {
-    // Angular suele dar HttpErrorResponse.
     const status = err?.status;
     const msg = err?.message || 'Error desconocido';
     const url = err?.url || '';
-
-    // Algunos errores CORS/Network salen como status 0
     if (status === 0) {
       return `🚫 Error de red/CORS (status 0). ${msg}`;
     }
@@ -140,7 +121,6 @@ export class PatientListComponent implements OnInit {
       (p.medicalHistory ?? '').toLowerCase().includes(q)
     );
 
-    // Mantener selección coherente con lo visible
     const visibleIds = new Set(this.filtered.map(p => p.id).filter(Boolean) as string[]);
     for (const id of Array.from(this.selected)) {
       if (!visibleIds.has(id)) this.selected.delete(id);
@@ -191,14 +171,22 @@ export class PatientListComponent implements OnInit {
     this.router.navigate(['/patients/edit', id], { queryParams: { mode: 'view' } });
   }
 
+  // --- NUEVA LÓGICA DE MODAL ---
   viewSelected(): void {
     if (this.selected.size === 0) {
       alert('No hay elementos seleccionados.');
       return;
     }
-    const details = this.patients.filter(p => p.id && this.selected.has(p.id));
-    alert(details.map(p => `• ${p.name} (${p.age}) - ${p.medicalHistory ?? ''}`).join('\n'));
+    // Rellenamos la lista de datos para el modal
+    this.selectedData = this.patients.filter(p => p.id && this.selected.has(p.id));
+    // Mostramos el modal
+    this.showModal = true;
   }
+
+  closeModal(): void {
+    this.showModal = false;
+  }
+  // -----------------------------
 
   editRow(id: string): void {
     this.router.navigate(['/patients/edit', id]);

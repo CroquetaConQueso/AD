@@ -27,7 +27,7 @@ export class PatientFormComponent implements OnInit {
     private api: ApiService,
     private route: ActivatedRoute,
     private router: Router
-  ) {}
+  ) { }
 
   get isView(): boolean { return this.mode === 'view'; }
 

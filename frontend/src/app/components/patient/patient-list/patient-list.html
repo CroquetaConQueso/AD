@@ -1,5 +1,5 @@
 <div class="page-header">
-  <h2>Pacientes</h2>
+  <h2>Pacientes (DEBUG MODE)</h2>
 
   <div class="toolbar">
     <input
@@ -23,6 +23,7 @@
 
 <div class="card">
   <div class="loading" *ngIf="isLoading">Cargando...</div>
+  <div class="error-msg" *ngIf="debugMsg" style="color: red; padding: 10px;">Debug: {{ debugMsg }}</div>
 
   <table class="table" *ngIf="!isLoading">
     <thead>
@@ -60,5 +61,29 @@
 
   <div class="empty" *ngIf="!isLoading && filtered.length === 0">
     No hay registros.
+  </div>
+</div>
+
+<div class="modal-backdrop" *ngIf="showModal" (click)="closeModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    
+    <div class="modal-header">
+      <h3>Pacientes Seleccionados ({{ selectedData.length }})</h3>
+    </div>
+
+    <div class="modal-body">
+      <div class="patient-card" *ngFor="let p of selectedData">
+        <strong>{{ p.name }}</strong>
+        <div class="patient-info">
+          <span>Edad: {{ p.age }}</span> | 
+          <span>Historial: {{ p.medicalHistory || 'Ninguno' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-primary" (click)="closeModal()">Cerrar</button>
+    </div>
+
   </div>
 </div>
