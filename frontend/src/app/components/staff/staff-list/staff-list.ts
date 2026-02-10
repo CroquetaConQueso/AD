@@ -1,9 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, ChangeDetectorRef, NgZone, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ApiService } from '../../../services/api.service';
 import { Staff } from '../../../models';
+import { of } from 'rxjs';
+import { catchError, finalize, map } from 'rxjs/operators';
 
 @Component({
   selector: 'app-staff-list',
@@ -16,32 +18,70 @@ export class StaffListComponent implements OnInit {
 
   staffList: Staff[] = [];
   filteredList: Staff[] = [];
-
   selectedStaff: Set<string> = new Set();
-
   searchTerm: string = '';
-
   isLoading = false;
+  debugMsg = '';
 
-  constructor(private api: ApiService, private router: Router) { }
+  constructor(
+    private api: ApiService,
+    private router: Router,
+    private cdr: ChangeDetectorRef,
+    private zone: NgZone
+  ) { }
 
   ngOnInit(): void {
     this.loadStaff();
   }
 
   loadStaff(): void {
+    const startedAt = Date.now();
     this.isLoading = true;
-    this.api.getStaff().subscribe({
-      next: (data) => {
-        this.staffList = data ?? [];
+    this.debugMsg = 'Cargando personal...';
+    this.cdr.detectChanges(); // Forzar update inicial
+
+    // Watchdog: Si tarda más de 9s, cancelar loading visual
+    const watchdog = setTimeout(() => {
+      if (this.isLoading) {
+        this.zone.run(() => {
+          this.isLoading = false;
+          this.debugMsg = '⏱️ Timeout: El servidor tardó demasiado.';
+          this.cdr.detectChanges();
+        });
+      }
+    }, 9000);
+
+    this.api.getStaff().pipe(
+      map((data: any) => {
+        // Normalización de datos (array vs pageable)
+        if (Array.isArray(data)) return data;
+        if (data && Array.isArray(data.content)) return data.content;
+        return [];
+      }),
+      catchError((err) => {
+        this.zone.run(() => {
+          this.debugMsg = `🔥 Error: ${err.message || 'Desconocido'}`;
+        });
+        return of([] as Staff[]);
+      }),
+      finalize(() => {
+        clearTimeout(watchdog);
+        this.zone.run(() => {
+          this.isLoading = false;
+          const ms = Date.now() - startedAt;
+          if (!this.debugMsg.startsWith('🔥') && !this.debugMsg.startsWith('⏱️')) {
+            this.debugMsg = `OK (${ms} ms)`;
+          }
+          this.cdr.detectChanges();
+        });
+      })
+    ).subscribe((data) => {
+      this.zone.run(() => {
+        this.staffList = data;
         this.filteredList = [...this.staffList];
         this.selectedStaff.clear();
-        this.isLoading = false;
-      },
-      error: () => {
-        this.isLoading = false;
-        alert('Error al cargar el personal');
-      }
+        this.cdr.detectChanges();
+      });
     });
   }
 
@@ -58,14 +98,12 @@ export class StaffListComponent implements OnInit {
       (staff.specialization ?? '').toLowerCase().includes(q)
     );
 
-    // limpiar selección de items que ya no están visibles
     const visibleIds = new Set(this.filteredList.map(s => s.id).filter(Boolean) as string[]);
     for (const id of Array.from(this.selectedStaff)) {
       if (!visibleIds.has(id)) this.selectedStaff.delete(id);
     }
   }
 
-  // --- selección ---
   toggleSelection(id: string): void {
     if (this.selectedStaff.has(id)) this.selectedStaff.delete(id);
     else this.selectedStaff.add(id);
@@ -79,11 +117,8 @@ export class StaffListComponent implements OnInit {
     const visibleIds = this.filteredList.map(staff => staff.id).filter(Boolean) as string[];
     const allSelected = visibleIds.length > 0 && visibleIds.every(id => this.selectedStaff.has(id));
 
-    if (allSelected) {
-      visibleIds.forEach(id => this.selectedStaff.delete(id));
-    } else {
-      visibleIds.forEach(id => this.selectedStaff.add(id));
-    }
+    if (allSelected) visibleIds.forEach(id => this.selectedStaff.delete(id));
+    else visibleIds.forEach(id => this.selectedStaff.add(id));
   }
 
   allVisibleSelected(): boolean {
@@ -91,74 +126,39 @@ export class StaffListComponent implements OnInit {
     return visibleIds.length > 0 && visibleIds.every(id => this.selectedStaff.has(id));
   }
 
-  // --- acciones ---
-  createNew(): void {
-    this.router.navigate(['/staff/new']);
-  }
+  createNew(): void { this.router.navigate(['/staff/new']); }
 
   editSelected(): void {
-    if (this.selectedStaff.size !== 1) {
-      alert('Selecciona EXACTAMENTE 1 elemento para editar.');
-      return;
-    }
+    if (this.selectedStaff.size !== 1) { alert('Selecciona 1 elemento.'); return; }
     const id = Array.from(this.selectedStaff)[0];
     this.router.navigate(['/staff/edit', id]);
   }
 
   inspectSelected(): void {
-    if (this.selectedStaff.size !== 1) {
-      alert('Selecciona EXACTAMENTE 1 elemento para inspeccionar.');
-      return;
-    }
+    if (this.selectedStaff.size !== 1) { alert('Selecciona 1 elemento.'); return; }
     const id = Array.from(this.selectedStaff)[0];
     this.router.navigate(['/staff/edit', id], { queryParams: { mode: 'view' } });
   }
 
   viewSelected(): void {
-    if (this.selectedStaff.size === 0) {
-      alert('No hay elementos seleccionados.');
-      return;
-    }
-    const selectedDetails = this.staffList.filter(staff => staff.id && this.selectedStaff.has(staff.id));
-    alert(
-      selectedDetails
-        .map(staff => `• ${staff.name} (${staff.role})${staff.specialization ? ' - ' + staff.specialization : ''}`)
-        .join('\n')
-    );
+    if (this.selectedStaff.size === 0) { alert('Nada seleccionado.'); return; }
+    const selectedDetails = this.staffList.filter(s => s.id && this.selectedStaff.has(s.id));
+    alert(selectedDetails.map(s => `• ${s.name} (${s.role})`).join('\n'));
   }
 
-  editRow(id: string): void {
-    this.router.navigate(['/staff/edit', id]);
-  }
-
-  viewRow(id: string): void {
-    this.router.navigate(['/staff/edit', id], { queryParams: { mode: 'view' } });
-  }
+  editRow(id: string): void { this.router.navigate(['/staff/edit', id]); }
+  viewRow(id: string): void { this.router.navigate(['/staff/edit', id], { queryParams: { mode: 'view' } }); }
 
   deleteOne(id: string): void {
-    if (!confirm('¿Eliminar este elemento?')) return;
-
-    this.api.deleteStaff(id).subscribe({
-      next: () => this.loadStaff(),
-      error: () => alert('No se pudo eliminar.')
-    });
+    if (!confirm('¿Eliminar?')) return;
+    this.api.deleteStaff(id).subscribe({ next: () => this.loadStaff(), error: () => alert('Error eliminando.') });
   }
 
   deleteSelected(): void {
-    if (this.selectedStaff.size === 0) {
-      alert('Selecciona al menos 1 elemento para eliminar.');
-      return;
-    }
-
+    if (this.selectedStaff.size === 0) { alert('Selecciona algo.'); return; }
     const ids = Array.from(this.selectedStaff);
-
-    if (!confirm(`¿Eliminar ${ids.length} elemento(s) seleccionado(s)?`)) return;
-
-    // Usamos endpoint bulk
-    this.api.deleteStaffMany(ids).subscribe({
-      next: () => this.loadStaff(),
-      error: () => alert('No se pudo eliminar el/los elemento(s).')
-    });
+    if (!confirm(`¿Eliminar ${ids.length}?`)) return;
+    this.api.deleteStaffMany(ids).subscribe({ next: () => this.loadStaff(), error: () => alert('Error eliminando.') });
   }
 
   refresh(): void {

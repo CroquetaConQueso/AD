@@ -1,5 +1,5 @@
 <div class="page-header">
-  <h2>Pacientes (DEBUG MODE)</h2>
+  <h2>Pacientes</h2>
 
   <div class="toolbar">
     <input
@@ -23,7 +23,6 @@
 
 <div class="card">
   <div class="loading" *ngIf="isLoading">Cargando...</div>
-  <div class="error-msg" *ngIf="debugMsg" style="color: red; padding: 10px;">Debug: {{ debugMsg }}</div>
 
   <table class="table" *ngIf="!isLoading">
     <thead>
