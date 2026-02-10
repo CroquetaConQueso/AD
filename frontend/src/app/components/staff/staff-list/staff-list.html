@@ -5,17 +5,15 @@
     <input
       class="search"
       type="text"
-      placeholder="Buscar por nombre / rol / especialización..."
+      placeholder="Buscar por nombre, rol..."
       [(ngModel)]="searchTerm"
       (input)="onSearchInput()"
     />
 
     <button class="btn btn-secondary" (click)="refresh()">Refrescar</button>
-
     <button class="btn btn-primary" (click)="createNew()">Nuevo</button>
     <button class="btn btn-secondary" (click)="editSelected()">Editar</button>
     <button class="btn btn-secondary" (click)="inspectSelected()">Inspeccionar</button>
-
     <button class="btn btn-secondary" (click)="viewSelected()">Ver seleccionados</button>
     <button class="btn btn-danger" (click)="deleteSelected()">Eliminar seleccionados</button>
   </div>
@@ -23,6 +21,7 @@
 
 <div class="card">
   <div class="loading" *ngIf="isLoading">Cargando...</div>
+  <div class="error-msg" *ngIf="debugMsg" style="color: red; padding: 10px;">{{ debugMsg }}</div>
 
   <table class="table" *ngIf="!isLoading">
     <thead>
@@ -59,6 +58,31 @@
   </table>
 
   <div class="empty" *ngIf="!isLoading && filteredList.length === 0">
-    No hay registros.
+    No hay personal registrado.
+  </div>
+</div>
+
+<div class="modal-backdrop" *ngIf="showModal" (click)="closeModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    
+    <div class="modal-header">
+      <h3>Personal Seleccionado ({{ selectedData.length }})</h3>
+    </div>
+
+    <div class="modal-body">
+      <div class="info-card" *ngFor="let s of selectedData">
+        <strong>{{ s.name }}</strong>
+        <div class="info-details">
+          <span>Rol: {{ s.role }}</span>
+          <span *ngIf="s.specialization"> | Esp: {{ s.specialization }}</span>
+          <span *ngIf="s.shift"> | Turno: {{ s.shift }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-primary" (click)="closeModal()">Cerrar</button>
+    </div>
+
   </div>
 </div>

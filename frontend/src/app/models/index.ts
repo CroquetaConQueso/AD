@@ -3,6 +3,7 @@ export interface Staff {
     name: string;
     role: string;
     specialization?: string;
+    shift?: string;
 }
 
 export interface Patient {

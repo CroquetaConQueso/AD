@@ -1,9 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ApiService } from '../../../services/api.service';
 import { Patient } from '../../../models';
+import { finalize } from 'rxjs/operators';
 
 type Mode = 'new' | 'edit' | 'view';
 
@@ -21,12 +22,14 @@ export class PatientFormComponent implements OnInit {
   mode: Mode = 'new';
   private patientId: string | null = null;
 
-  loading = false;
+  loading = false; // Mantenemos tu variable original
 
   constructor(
     private api: ApiService,
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef, // Inyectado para el fix
+    private zone: NgZone             // Inyectado para el fix
   ) { }
 
   get isView(): boolean { return this.mode === 'view'; }
@@ -54,20 +57,42 @@ export class PatientFormComponent implements OnInit {
 
   private loadPatient(id: string): void {
     this.loading = true;
-    this.api.getPatientById(id).subscribe({
+    this.cdr.detectChanges(); // Forzar actualización visual
+
+    // Watchdog: Si falla la red, desbloquear a los 5s
+    const watchdog = setTimeout(() => {
+      if (this.loading) {
+        this.zone.run(() => {
+          this.loading = false;
+          this.cdr.detectChanges();
+        });
+      }
+    }, 5000);
+
+    this.api.getPatientById(id).pipe(
+      finalize(() => {
+        clearTimeout(watchdog);
+        this.zone.run(() => {
+          this.loading = false;
+          this.cdr.detectChanges();
+        });
+      })
+    ).subscribe({
       next: (data) => {
-        this.patient = {
-          id: data.id,
-          name: data.name ?? '',
-          age: data.age ?? 0,
-          medicalHistory: data.medicalHistory ?? ''
-        };
-        this.loading = false;
+        this.zone.run(() => {
+          this.patient = {
+            id: data.id,
+            name: data.name ?? '',
+            age: data.age ?? 0,
+            medicalHistory: data.medicalHistory ?? ''
+          };
+        });
       },
       error: () => {
-        this.loading = false;
-        alert('No se pudo cargar el paciente.');
-        this.router.navigate(['/patients']);
+        this.zone.run(() => {
+          alert('No se pudo cargar el paciente.');
+          this.router.navigate(['/patients']);
+        });
       }
     });
   }
@@ -92,35 +117,36 @@ export class PatientFormComponent implements OnInit {
     }
 
     this.loading = true;
+    this.cdr.detectChanges();
 
-    if (this.mode === 'new') {
-      this.api.createPatient(payload).subscribe({
-        next: () => {
+    // Watchdog para save
+    const watchdog = setTimeout(() => {
+      if (this.loading) {
+        this.zone.run(() => {
           this.loading = false;
-          this.router.navigate(['/patients']);
-        },
-        error: () => {
+          this.cdr.detectChanges();
+        });
+      }
+    }, 5000);
+
+    const request$ = this.mode === 'new'
+      ? this.api.createPatient(payload)
+      : this.api.updatePatient(this.patientId!, payload);
+
+    request$.pipe(
+      finalize(() => {
+        clearTimeout(watchdog);
+        this.zone.run(() => {
           this.loading = false;
-          alert('No se pudo guardar el paciente.');
-        }
-      });
-      return;
-    }
-
-    if (!this.patientId) {
-      this.loading = false;
-      alert('ID no válido.');
-      return;
-    }
-
-    this.api.updatePatient(this.patientId, payload).subscribe({
+          this.cdr.detectChanges();
+        });
+      })
+    ).subscribe({
       next: () => {
-        this.loading = false;
-        this.router.navigate(['/patients']);
+        this.zone.run(() => this.router.navigate(['/patients']));
       },
       error: () => {
-        this.loading = false;
-        alert('No se pudo actualizar el paciente.');
+        this.zone.run(() => alert(this.mode === 'new' ? 'No se pudo guardar.' : 'No se pudo actualizar.'));
       }
     });
   }

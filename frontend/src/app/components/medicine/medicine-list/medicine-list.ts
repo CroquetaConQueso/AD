@@ -23,6 +23,10 @@ export class MedicineListComponent implements OnInit {
   isLoading = false;
   debugMsg = '';
 
+  // --- VARIABLES MODAL ---
+  showModal = false;
+  selectedData: Medicine[] = [];
+
   constructor(
     private api: ApiService,
     private router: Router,
@@ -35,20 +39,18 @@ export class MedicineListComponent implements OnInit {
   }
 
   load(): void {
-    const startedAt = Date.now();
     this.isLoading = true;
-    this.debugMsg = 'Cargando medicinas...';
     this.cdr.detectChanges();
 
     const watchdog = setTimeout(() => {
       if (this.isLoading) {
         this.zone.run(() => {
           this.isLoading = false;
-          this.debugMsg = '⏱️ Timeout Medicinas.';
+          this.debugMsg = 'Timeout.';
           this.cdr.detectChanges();
         });
       }
-    }, 9000);
+    }, 5000);
 
     this.api.getMedicines().pipe(
       map((data: any) => {
@@ -57,9 +59,7 @@ export class MedicineListComponent implements OnInit {
         return [];
       }),
       catchError((err) => {
-        this.zone.run(() => {
-          this.debugMsg = `🔥 Error: ${err.message}`;
-        });
+        this.zone.run(() => this.debugMsg = `Error: ${err.message}`);
         return of([] as Medicine[]);
       }),
       finalize(() => {
@@ -128,11 +128,17 @@ export class MedicineListComponent implements OnInit {
     this.router.navigate(['/medicines/edit', id], { queryParams: { mode: 'view' } });
   }
 
+  // --- LÓGICA MODAL ---
   viewSelected(): void {
     if (this.selected.size === 0) { alert('Nada seleccionado.'); return; }
-    const details = this.medicines.filter(m => m.id && this.selected.has(m.id));
-    alert(details.map(m => `• ${m.name}`).join('\n'));
+    this.selectedData = this.medicines.filter(m => m.id && this.selected.has(m.id));
+    this.showModal = true;
   }
+
+  closeModal(): void {
+    this.showModal = false;
+  }
+  // --------------------
 
   editRow(id: string): void { this.router.navigate(['/medicines/edit', id]); }
   viewRow(id: string): void { this.router.navigate(['/medicines/edit', id], { queryParams: { mode: 'view' } }); }

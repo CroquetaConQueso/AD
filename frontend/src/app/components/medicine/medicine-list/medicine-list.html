@@ -5,24 +5,23 @@
     <input
       class="search"
       type="text"
-      placeholder="Buscar por nombre / cantidad..."
+      placeholder="Buscar medicina..."
       [(ngModel)]="searchTerm"
       (input)="onSearchInput()"
     />
 
     <button class="btn btn-secondary" (click)="refresh()">Refrescar</button>
-
-    <button class="btn btn-primary" (click)="createNew()">Nuevo</button>
+    <button class="btn btn-primary" (click)="createNew()">Nueva</button>
     <button class="btn btn-secondary" (click)="editSelected()">Editar</button>
     <button class="btn btn-secondary" (click)="inspectSelected()">Inspeccionar</button>
-
-    <button class="btn btn-secondary" (click)="viewSelected()">Ver seleccionados</button>
-    <button class="btn btn-danger" (click)="deleteSelected()">Eliminar seleccionados</button>
+    <button class="btn btn-secondary" (click)="viewSelected()">Ver seleccionadas</button>
+    <button class="btn btn-danger" (click)="deleteSelected()">Eliminar seleccionadas</button>
   </div>
 </div>
 
 <div class="card">
   <div class="loading" *ngIf="isLoading">Cargando...</div>
+  <div class="error-msg" *ngIf="debugMsg" style="color: red; padding: 10px;">{{ debugMsg }}</div>
 
   <table class="table" *ngIf="!isLoading">
     <thead>
@@ -31,7 +30,7 @@
           <input type="checkbox" [checked]="allVisibleSelected()" (change)="toggleSelectAll()" />
         </th>
         <th>Nombre</th>
-        <th class="col-qty">Cantidad</th>
+        <th>Cantidad</th>
         <th class="col-actions">Acciones</th>
       </tr>
     </thead>
@@ -46,7 +45,7 @@
           />
         </td>
         <td>{{ m.name }}</td>
-        <td class="col-qty">{{ m.quantity }}</td>
+        <td>{{ m.quantity }}</td>
         <td class="col-actions">
           <button class="btn-link" (click)="editRow(m.id!)">Editar</button>
           <button class="btn-link" (click)="viewRow(m.id!)">Ver</button>
@@ -57,6 +56,29 @@
   </table>
 
   <div class="empty" *ngIf="!isLoading && filtered.length === 0">
-    No hay registros.
+    No hay medicinas.
+  </div>
+</div>
+
+<div class="modal-backdrop" *ngIf="showModal" (click)="closeModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    
+    <div class="modal-header">
+      <h3>Medicinas Seleccionadas ({{ selectedData.length }})</h3>
+    </div>
+
+    <div class="modal-body">
+      <div class="info-card" *ngFor="let m of selectedData">
+        <strong>{{ m.name }}</strong>
+        <div class="info-details">
+          <span>Stock disponible: {{ m.quantity }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-primary" (click)="closeModal()">Cerrar</button>
+    </div>
+
   </div>
 </div>

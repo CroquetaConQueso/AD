@@ -1,9 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ApiService } from '../../../services/api.service';
 import { Staff } from '../../../models';
+import { finalize } from 'rxjs/operators';
 
 type Mode = 'new' | 'edit' | 'view';
 
@@ -23,13 +24,15 @@ export class StaffFormComponent implements OnInit {
 
   readonly roles: Staff['role'][] = ['DOCTOR', 'NURSE'];
 
-  loading = false;
+  loading = false; // Variable original
 
   constructor(
     private api: ApiService,
     private route: ActivatedRoute,
-    private router: Router
-  ) {}
+    private router: Router,
+    private cdr: ChangeDetectorRef,
+    private zone: NgZone
+  ) { }
 
   get isView(): boolean { return this.mode === 'view'; }
   get title(): string {
@@ -42,7 +45,6 @@ export class StaffFormComponent implements OnInit {
     this.staffId = this.route.snapshot.paramMap.get('id');
     const qpMode = (this.route.snapshot.queryParamMap.get('mode') || '').toLowerCase();
 
-    // si navegamos con router state (por ejemplo desde staff-list)
     const nav = this.router.getCurrentNavigation();
     const stateView = !!nav?.extras?.state && (nav.extras.state as any).view === true;
 
@@ -56,20 +58,41 @@ export class StaffFormComponent implements OnInit {
 
   private loadStaff(id: string): void {
     this.loading = true;
-    this.api.getStaffById(id).subscribe({
+    this.cdr.detectChanges();
+
+    const watchdog = setTimeout(() => {
+      if (this.loading) {
+        this.zone.run(() => {
+          this.loading = false;
+          this.cdr.detectChanges();
+        });
+      }
+    }, 5000);
+
+    this.api.getStaffById(id).pipe(
+      finalize(() => {
+        clearTimeout(watchdog);
+        this.zone.run(() => {
+          this.loading = false;
+          this.cdr.detectChanges();
+        });
+      })
+    ).subscribe({
       next: (data) => {
-        this.staff = {
-          id: data.id,
-          name: data.name ?? '',
-          role: (data.role as any) ?? 'DOCTOR',
-          specialization: data.specialization ?? ''
-        };
-        this.loading = false;
+        this.zone.run(() => {
+          this.staff = {
+            id: data.id,
+            name: data.name ?? '',
+            role: (data.role as any) ?? 'DOCTOR',
+            specialization: data.specialization ?? ''
+          };
+        });
       },
       error: () => {
-        this.loading = false;
-        alert('No se pudo cargar el personal.');
-        this.router.navigate(['/staff']);
+        this.zone.run(() => {
+          alert('No se pudo cargar el personal.');
+          this.router.navigate(['/staff']);
+        });
       }
     });
   }
@@ -90,36 +113,35 @@ export class StaffFormComponent implements OnInit {
     }
 
     this.loading = true;
+    this.cdr.detectChanges();
 
-    if (this.mode === 'new') {
-      this.api.createStaff(payload).subscribe({
-        next: () => {
+    const watchdog = setTimeout(() => {
+      if (this.loading) {
+        this.zone.run(() => {
           this.loading = false;
-          this.router.navigate(['/staff']);
-        },
-        error: () => {
+          this.cdr.detectChanges();
+        });
+      }
+    }, 5000);
+
+    const request$ = this.mode === 'new'
+      ? this.api.createStaff(payload)
+      : this.api.updateStaff(this.staffId!, payload);
+
+    request$.pipe(
+      finalize(() => {
+        clearTimeout(watchdog);
+        this.zone.run(() => {
           this.loading = false;
-          alert('No se pudo guardar el personal.');
-        }
-      });
-      return;
-    }
-
-    // edit
-    if (!this.staffId) {
-      this.loading = false;
-      alert('ID no válido.');
-      return;
-    }
-
-    this.api.updateStaff(this.staffId, payload).subscribe({
+          this.cdr.detectChanges();
+        });
+      })
+    ).subscribe({
       next: () => {
-        this.loading = false;
-        this.router.navigate(['/staff']);
+        this.zone.run(() => this.router.navigate(['/staff']));
       },
       error: () => {
-        this.loading = false;
-        alert('No se pudo actualizar el personal.');
+        this.zone.run(() => alert('No se pudo guardar el personal.'));
       }
     });
   }

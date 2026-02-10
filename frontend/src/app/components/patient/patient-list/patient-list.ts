@@ -44,7 +44,6 @@ export class PatientListComponent implements OnInit {
     const startedAt = Date.now();
 
     this.isLoading = true;
-    this.debugMsg = 'Cargando pacientes...';
     this.cdr.detectChanges();
 
     const watchdog = setTimeout(() => {
@@ -72,10 +71,6 @@ export class PatientListComponent implements OnInit {
         clearTimeout(watchdog);
         this.zone.run(() => {
           this.isLoading = false;
-          const ms = Date.now() - startedAt;
-          if (!this.debugMsg || this.debugMsg.startsWith('Cargando')) {
-            this.debugMsg = `OK (${ms} ms) · ${this.patients.length} registro(s)`;
-          }
           this.cdr.detectChanges();
         });
       })

@@ -1,9 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ApiService } from '../../../services/api.service';
 import { Medicine } from '../../../models';
+import { finalize } from 'rxjs/operators';
 
 type Mode = 'new' | 'edit' | 'view';
 
@@ -21,12 +22,14 @@ export class MedicineFormComponent implements OnInit {
   mode: Mode = 'new';
   private medicineId: string | null = null;
 
-  loading = false;
+  loading = false; // Variable original
 
   constructor(
     private api: ApiService,
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef,
+    private zone: NgZone
   ) { }
 
   get isView(): boolean { return this.mode === 'view'; }
@@ -54,19 +57,40 @@ export class MedicineFormComponent implements OnInit {
 
   private loadMedicine(id: string): void {
     this.loading = true;
-    this.api.getMedicineById(id).subscribe({
+    this.cdr.detectChanges();
+
+    const watchdog = setTimeout(() => {
+      if (this.loading) {
+        this.zone.run(() => {
+          this.loading = false;
+          this.cdr.detectChanges();
+        });
+      }
+    }, 5000);
+
+    this.api.getMedicineById(id).pipe(
+      finalize(() => {
+        clearTimeout(watchdog);
+        this.zone.run(() => {
+          this.loading = false;
+          this.cdr.detectChanges();
+        });
+      })
+    ).subscribe({
       next: (data) => {
-        this.medicine = {
-          id: data.id,
-          name: data.name ?? '',
-          quantity: data.quantity ?? 0
-        };
-        this.loading = false;
+        this.zone.run(() => {
+          this.medicine = {
+            id: data.id,
+            name: data.name ?? '',
+            quantity: data.quantity ?? 0
+          };
+        });
       },
       error: () => {
-        this.loading = false;
-        alert('No se pudo cargar la medicina.');
-        this.router.navigate(['/medicines']);
+        this.zone.run(() => {
+          alert('No se pudo cargar la medicina.');
+          this.router.navigate(['/medicines']);
+        });
       }
     });
   }
@@ -90,35 +114,35 @@ export class MedicineFormComponent implements OnInit {
     }
 
     this.loading = true;
+    this.cdr.detectChanges();
 
-    if (this.mode === 'new') {
-      this.api.createMedicine(payload).subscribe({
-        next: () => {
+    const watchdog = setTimeout(() => {
+      if (this.loading) {
+        this.zone.run(() => {
           this.loading = false;
-          this.router.navigate(['/medicines']);
-        },
-        error: () => {
+          this.cdr.detectChanges();
+        });
+      }
+    }, 5000);
+
+    const request$ = this.mode === 'new'
+      ? this.api.createMedicine(payload)
+      : this.api.updateMedicine(this.medicineId!, payload);
+
+    request$.pipe(
+      finalize(() => {
+        clearTimeout(watchdog);
+        this.zone.run(() => {
           this.loading = false;
-          alert('No se pudo guardar la medicina.');
-        }
-      });
-      return;
-    }
-
-    if (!this.medicineId) {
-      this.loading = false;
-      alert('ID no válido.');
-      return;
-    }
-
-    this.api.updateMedicine(this.medicineId, payload).subscribe({
+          this.cdr.detectChanges();
+        });
+      })
+    ).subscribe({
       next: () => {
-        this.loading = false;
-        this.router.navigate(['/medicines']);
+        this.zone.run(() => this.router.navigate(['/medicines']));
       },
       error: () => {
-        this.loading = false;
-        alert('No se pudo actualizar la medicina.');
+        this.zone.run(() => alert('No se pudo guardar la medicina.'));
       }
     });
   }

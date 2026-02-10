@@ -23,6 +23,10 @@ export class StaffListComponent implements OnInit {
   isLoading = false;
   debugMsg = '';
 
+  // --- VARIABLES MODAL ---
+  showModal = false;
+  selectedData: Staff[] = [];
+
   constructor(
     private api: ApiService,
     private router: Router,
@@ -35,43 +39,33 @@ export class StaffListComponent implements OnInit {
   }
 
   loadStaff(): void {
-    const startedAt = Date.now();
     this.isLoading = true;
-    this.debugMsg = 'Cargando personal...';
-    this.cdr.detectChanges(); // Forzar update inicial
+    this.cdr.detectChanges();
 
-    // Watchdog: Si tarda más de 9s, cancelar loading visual
     const watchdog = setTimeout(() => {
       if (this.isLoading) {
         this.zone.run(() => {
           this.isLoading = false;
-          this.debugMsg = '⏱️ Timeout: El servidor tardó demasiado.';
+          this.debugMsg = 'Timeout.';
           this.cdr.detectChanges();
         });
       }
-    }, 9000);
+    }, 5000);
 
     this.api.getStaff().pipe(
       map((data: any) => {
-        // Normalización de datos (array vs pageable)
         if (Array.isArray(data)) return data;
         if (data && Array.isArray(data.content)) return data.content;
         return [];
       }),
       catchError((err) => {
-        this.zone.run(() => {
-          this.debugMsg = `🔥 Error: ${err.message || 'Desconocido'}`;
-        });
+        this.zone.run(() => this.debugMsg = `Error: ${err.message}`);
         return of([] as Staff[]);
       }),
       finalize(() => {
         clearTimeout(watchdog);
         this.zone.run(() => {
           this.isLoading = false;
-          const ms = Date.now() - startedAt;
-          if (!this.debugMsg.startsWith('🔥') && !this.debugMsg.startsWith('⏱️')) {
-            this.debugMsg = `OK (${ms} ms)`;
-          }
           this.cdr.detectChanges();
         });
       })
@@ -85,7 +79,6 @@ export class StaffListComponent implements OnInit {
     });
   }
 
-  // --- Búsqueda local (rápida) ---
   onSearchInput(): void {
     const q = (this.searchTerm || '').toLowerCase().trim();
     if (!q) {
@@ -97,7 +90,7 @@ export class StaffListComponent implements OnInit {
       (staff.role ?? '').toLowerCase().includes(q) ||
       (staff.specialization ?? '').toLowerCase().includes(q)
     );
-
+    // Limpiar selección de invisibles
     const visibleIds = new Set(this.filteredList.map(s => s.id).filter(Boolean) as string[]);
     for (const id of Array.from(this.selectedStaff)) {
       if (!visibleIds.has(id)) this.selectedStaff.delete(id);
@@ -114,7 +107,7 @@ export class StaffListComponent implements OnInit {
   }
 
   toggleSelectAll(): void {
-    const visibleIds = this.filteredList.map(staff => staff.id).filter(Boolean) as string[];
+    const visibleIds = this.filteredList.map(s => s.id).filter(Boolean) as string[];
     const allSelected = visibleIds.length > 0 && visibleIds.every(id => this.selectedStaff.has(id));
 
     if (allSelected) visibleIds.forEach(id => this.selectedStaff.delete(id));
@@ -140,11 +133,20 @@ export class StaffListComponent implements OnInit {
     this.router.navigate(['/staff/edit', id], { queryParams: { mode: 'view' } });
   }
 
+  // --- LÓGICA MODAL ---
   viewSelected(): void {
-    if (this.selectedStaff.size === 0) { alert('Nada seleccionado.'); return; }
-    const selectedDetails = this.staffList.filter(s => s.id && this.selectedStaff.has(s.id));
-    alert(selectedDetails.map(s => `• ${s.name} (${s.role})`).join('\n'));
+    if (this.selectedStaff.size === 0) {
+      alert('Nada seleccionado.');
+      return;
+    }
+    this.selectedData = this.staffList.filter(s => s.id && this.selectedStaff.has(s.id));
+    this.showModal = true;
   }
+
+  closeModal(): void {
+    this.showModal = false;
+  }
+  // --------------------
 
   editRow(id: string): void { this.router.navigate(['/staff/edit', id]); }
   viewRow(id: string): void { this.router.navigate(['/staff/edit', id], { queryParams: { mode: 'view' } }); }

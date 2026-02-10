@@ -1,45 +1,83 @@
-<div class="container-fluid">
-  <div class="page-header">
-    <h2>Tratamientos Asignados</h2>
-    <button routerLink="/treatments/new" class="btn btn-primary">
-      + Asignar Tratamiento
-    </button>
-  </div>
+<div class="page-header">
+  <h2>Tratamientos</h2>
 
-  <div class="card table-container">
-    <table class="table">
-      <thead>
-        <tr>
-          <th>Paciente</th>
-          <th>Personal</th>
-          <th>Medicina</th>
-          <th>Descripción / Notas</th>
-          <th>Fecha</th>
-          <th style="width: 150px;">Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let t of treatments">
-          <td>
-            <strong>{{ getPatientName(t.patientId) }}</strong>
-          </td>
-          <td>{{ getStaffName(t.staffId) }}</td>
-          <td>{{ getMedicineName(t.medicineId) }}</td>
-          <td>
-             <div *ngIf="t.description"><em>{{ t.description }}</em></div>
-             <div *ngIf="t.notes"><small>{{ t.notes }}</small></div>
-          </td>
-          <td>{{ t.startDate || t.date | date:'dd/MM/yyyy' }}</td>
-          <td>
-            <button (click)="delete(t.id)" class="btn btn-danger btn-sm">
-              Eliminar
-            </button>
-          </td>
-        </tr>
-        <tr *ngIf="treatments.length === 0">
-          <td colspan="6" class="text-center">No hay tratamientos registrados.</td>
-        </tr>
-      </tbody>
-    </table>
+  <div class="toolbar">
+    <button class="btn btn-secondary" (click)="loadData()">Refrescar</button>
+    <button class="btn btn-primary" [routerLink]="['/treatments/new']">Nuevo</button>
+    
+    <button class="btn btn-secondary" (click)="editSelected()">Editar</button>
+    <button class="btn btn-secondary" (click)="inspectSelected()">Inspeccionar</button>
+    <button class="btn btn-secondary" (click)="viewSelected()">Ver seleccionados</button>
+    <button class="btn btn-danger" (click)="deleteSelected()">Eliminar seleccionados</button>
+  </div>
+</div>
+
+<div class="card">
+  <div class="loading" *ngIf="isLoading">Cargando...</div>
+  <div class="error-msg" *ngIf="debugMsg" style="color: blue; padding: 10px;">{{ debugMsg }}</div>
+
+  <table class="table" *ngIf="!isLoading">
+    <thead>
+      <tr>
+        <th style="width: 40px;">
+          <input type="checkbox" [checked]="allSelected()" (change)="toggleSelectAll()" />
+        </th>
+        <th>Paciente</th>
+        <th>Tratamiento</th>
+        <th>Fecha</th>
+        <th>Doctor/a</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let t of treatments" [class.row-selected]="t.id && isSelected(t.id)">
+        <td>
+          <input 
+            type="checkbox" 
+            [checked]="t.id && isSelected(t.id)" 
+            (click)="$event.stopPropagation(); toggleSelection(t.id!)"
+          />
+        </td>
+        <td>{{ getPatientName(t.patientId) }}</td>
+        <td>{{ t.description || 'Sin descripción' }}</td>
+        <td>{{ t.date | date:'shortDate' }}</td>
+        <td>{{ getStaffName(t.staffId) }}</td>
+        <td style="white-space: nowrap;">
+          <button class="btn-link" [routerLink]="['/treatments/edit', t.id]">Editar</button>
+          <button class="btn-link" [routerLink]="['/treatments/edit', t.id]" [queryParams]="{mode:'view'}">Ver</button>
+          <button class="btn-link danger" (click)="delete(t.id)">Eliminar</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="empty" *ngIf="!isLoading && treatments.length === 0">
+    No hay tratamientos registrados.
+  </div>
+</div>
+
+<div class="modal-backdrop" *ngIf="showModal" (click)="closeModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    
+    <div class="modal-header">
+      <h3>Tratamientos Seleccionados ({{ selectedData.length }})</h3>
+    </div>
+
+    <div class="modal-body">
+      <div class="info-card" *ngFor="let t of selectedData">
+        <strong>{{ t.description || 'Tratamiento sin nombre' }}</strong>
+        <div class="info-details">
+          <span>📅 Fecha: {{ t.date | date:'mediumDate' }}</span>
+          <span>👤 Paciente: {{ getPatientName(t.patientId) }}</span>
+          <span>👨‍⚕️ Doctor: {{ getStaffName(t.staffId) }}</span>
+          <span *ngIf="t.notes">📝 Notas: {{ t.notes }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-primary" (click)="closeModal()">Cerrar</button>
+    </div>
+
   </div>
 </div>
