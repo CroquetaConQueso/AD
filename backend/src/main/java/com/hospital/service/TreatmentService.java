@@ -5,7 +5,8 @@ import com.hospital.model.Treatment;
 import com.hospital.repository.MedicineRepository;
 import com.hospital.repository.TreatmentRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+// import org.springframework.transaction.annotation.Transactional; <--- ELIMINADO
+
 import java.util.List;
 import java.util.Optional;
 
@@ -23,7 +24,11 @@ public class TreatmentService {
         return treatmentRepository.findAll();
     }
 
-    @Transactional
+    public Optional<Treatment> findById(String id) {
+        return treatmentRepository.findById(id);
+    }
+
+    // SIN @Transactional
     public Treatment createTreatment(Treatment treatment) {
         if (treatment.getMedicineId() != null) {
             Optional<Medicine> medicineOpt = medicineRepository.findById(treatment.getMedicineId());
@@ -46,15 +51,11 @@ public class TreatmentService {
         return treatmentRepository.save(treatment);
     }
 
-    public List<Treatment> findByPatientId(String patientId) {
-        return treatmentRepository.findByPatientId(patientId);
-    }
-
     public void deleteTreatment(String id) {
         treatmentRepository.deleteById(id);
     }
 
-    public Optional<Treatment> findById(String id) {
-        return treatmentRepository.findById(id);
+    public List<Treatment> findByPatientId(String patientId) {
+        return treatmentRepository.findByPatientId(patientId);
     }
 }

@@ -3,7 +3,6 @@ package com.hospital.model;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import lombok.Data;
-import java.time.LocalDateTime;
 
 @Data
 @Document(collection = "treatments")
@@ -13,6 +12,7 @@ public class Treatment {
     private String patientId;
     private String staffId;
     private String medicineId;
-    private LocalDateTime date;
+    private String date;
     private String notes;
+    private String description;
 }
